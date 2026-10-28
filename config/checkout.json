@@ -1,0 +1,4 @@
+{
+  "_leia_me": "Link de checkout da RXPAY para cada SKU (produto-kN). Enquanto um SKU estiver sem link, o botão de compra abre o WhatsApp com o pedido já escrito. Configure na RXPAY a página de obrigado como: URL_DO_SITE/obrigado/?pedido={id}&valor={valor}&sku={sku}",
+  "links": {}
+}
