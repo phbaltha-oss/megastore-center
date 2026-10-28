@@ -20,6 +20,8 @@ for _pid, _d in _CK.get('rxpay', {}).items():
     for _q, _oid in _d.get('ofertas', {}).items():
         CHECK.setdefault(f'{_pid}-k{_q}', 'https://go.rxpay.com.br/?id=' + base64.b64encode(f"{_d['ref']}:{_oid}".encode()).decode())
 PRODS = json.load(open(os.path.join(ROOT, 'data/produtos.json'), encoding='utf-8'))
+CATS = json.load(open(os.path.join(ROOT, 'config/categorias.json'), encoding='utf-8'))
+PRODS.sort(key=lambda p: (-p.get('vendas', 0), p['nome'].lower()))
 # fotos: "ml:" é atalho para o CDN do Mercado Livre; kit sem fotos próprias usa as do pote único
 for _p in PRODS:
     for _v in _p['variacoes']:
@@ -119,7 +121,7 @@ def layout(title, body, root, desc='', canonical='', extra_head='', noindex=Fals
 <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="top"><div class="wrap">
 <a class="logo" href="{root}">{E(LOJA['nome_loja'])}</a>
-<nav aria-label="Principal"><a href="{root}?secao=suplemento#suplementos">Suplementos</a><a href="{root}?secao=cosmetico#cosmeticos">Cosméticos</a><a href="{root}entrega/">Entrega</a><a href="{root}trocas-e-devolucoes/">Trocas</a><a href="{root}contato/">Contato</a></nav>
+<nav aria-label="Principal"><a href="{root}#mais-vendidos">Mais vendidos</a><a href="{root}#categorias">Categorias</a><a href="{root}entrega/">Entrega</a><a href="{root}trocas-e-devolucoes/">Trocas</a><a href="{root}contato/">Contato</a></nav>
 </div></header>
 <div class="strip"><div class="wrap"><span>{E(LOJA['frete'])}</span><span>Pagamento por {E(LOJA['formas_pagamento'].split(',')[0])}, cartão ou boleto</span><span>CNPJ {E(LOJA['cnpj'])}</span></div></div>
 <main id="conteudo">
@@ -172,7 +174,7 @@ def product_page(p, q):
           'description': D['apresentacao'], 'offers': offers}
     facts = [('Apresentação', FORMA[p['forma']]), ('Conteúdo', f"{p['conteudo']} por {u}" if p['conteudo'] else '—'), ('Marca', p['marca']), ('Condição', 'Novo, lacrado')]
     body = f'''<div class="wrap">
-<p class="crumbs"><a href="{root}">Produtos</a> / {E(p['nome'])}</p>
+<p class="crumbs"><a href="{root}">Produtos</a> / <a href="{root}categoria/{p.get('categoria','bem-estar')}/">{E(CATS.get(p.get('categoria',''),''))}</a> / {E(p['nome'])}</p>
 <div class="pp">
 <div><div class="gal-main"><img id="foto" src="{E(imgs[0])}" alt="{E(sel['titulo'])}" referrerpolicy="no-referrer"></div><div class="thumbs" id="thumbs">{thumbs}</div></div>
 <div>
@@ -199,25 +201,38 @@ def product_page(p, q):
                   extra_head=f'<meta property="og:image" content="{E(img(sel["imagens"][0], BASE + "/"))}">')
 
 # ---------------------------------------------------------------- catálogo
-def home():
-    root = ''
-    def card(p):
-        v1 = p['variacoes'][0]
-        return f'''<a class="prod" href="{kit_path(p,1)}" data-busca="{E(p['nome']+' '+p['marca']+' '+' '.join(p['componentes']))}" data-tipo="{p['tipo']}" data-sku="{v1['sku']}" data-nome="{E(p['nome'])}" data-marca="{E(p['marca'])}" data-preco="{v1['preco']}">
+def card(p, root):
+    v1 = p['variacoes'][0]
+    return f'''<a class="prod" href="{root}{kit_path(p,1)}" data-busca="{E(p['nome']+' '+p['marca']+' '+' '.join(p['componentes'])+' '+CATS.get(p.get('categoria',''),''))}" data-cat="{p.get('categoria','')}" data-sku="{v1['sku']}" data-nome="{E(p['nome'])}" data-marca="{E(p['marca'])}" data-preco="{v1['preco']}">
 <div class="ph"><img src="{E(img(v1['imagens'][0], root))}" alt="{E(p['nome'])}" loading="lazy" referrerpolicy="no-referrer"></div>
 <div class="bd"><h3>{E(p['nome'])}</h3><p class="meta">{E(FORMA[p['forma']])}{' · ' + E(p['conteudo']) if p['conteudo'] else ''}</p>
 <p class="from">1 {p['unidade']} <b>{brl(v1['preco'])}</b></p></div></a>'''
-    sup = [p for p in PRODS if p['tipo'] == 'suplemento']
-    cos = [p for p in PRODS if p['tipo'] == 'cosmetico']
+
+def cat_nav(root, ativa=''):
+    cnt = {k: sum(1 for p in PRODS if p.get('categoria') == k) for k in CATS}
+    chips = [f'<a class="chip" href="{root}" aria-current="{"page" if not ativa else "false"}">Todos</a>']
+    chips += [f'<a class="chip" data-cat="{k}" href="{root}categoria/{k}/" aria-current="{"page" if k == ativa else "false"}">{E(n)} <span>{cnt[k]}</span></a>' for k, n in CATS.items() if cnt[k]]
+    return '<nav class="chips" id="categorias" aria-label="Categorias">' + ''.join(chips) + '</nav>'
+
+def finder():
+    return '<div class="finder"><label class="skip" for="busca">Buscar produto</label><input id="busca" type="search" placeholder="Busque pelo nome, ingrediente ou categoria" autocomplete="off"></div><p class="count" id="count" aria-live="polite"></p>'
+
+def home():
+    root = ''
+    top = sorted([p for p in PRODS if p.get('mais_vendido')], key=lambda p: p['mais_vendido'])
+    shelves = []
+    for k, n in CATS.items():
+        ps = [p for p in PRODS if p.get('categoria') == k]
+        if ps:
+            shelves.append(f'<section class="shelf" id="{k}"><div class="shelf-head"><h2>{E(n)}</h2><a href="categoria/{k}/">Ver todos ({len(ps)})</a></div><div class="grid">{"".join(card(p, root).replace('class="prod"', 'class="prod more"', 1) if i >= 10 else card(p, root) for i, p in enumerate(ps))}</div></section>')
     body = f'''<div class="wrap">
 <section class="intro"><h1>Encontre seu produto</h1>
 <p>{len(PRODS)} produtos em kits de 1 a 5 unidades. Quanto maior o kit, menor o preço por unidade.</p>
-<div class="finder"><label class="skip" for="busca">Buscar produto</label><input id="busca" type="search" placeholder="Busque pelo nome ou ingrediente" autocomplete="off">
-<div class="chips" role="group" aria-label="Escolher seção"><button class="chip" type="button" data-tipo="todos" aria-pressed="true">Todos ({len(PRODS)})</button><button class="chip" type="button" data-tipo="suplemento" aria-pressed="false">Suplementos ({len(sup)})</button><button class="chip" type="button" data-tipo="cosmetico" aria-pressed="false">Cosméticos ({len(cos)})</button></div></div>
-<p class="count" id="count" aria-live="polite"></p></section>
-<section class="shelf" id="suplementos" data-tipo="suplemento"><h2>Suplementos alimentares</h2><div class="grid">{''.join(card(p) for p in sup)}</div></section>
-<section class="shelf" id="cosmeticos" data-tipo="cosmetico"><h2>Cosméticos e cuidados com o corpo</h2><div class="grid">{''.join(card(p) for p in cos)}</div></section>
-<div id="grid" hidden></div></div>'''
+{finder()}
+{cat_nav(root)}</section>
+<section class="shelf best" id="mais-vendidos"><div class="shelf-head"><h2>Mais vendidos</h2></div><div class="grid">{"".join(card(p, root) for p in top)}</div></section>
+{"".join(shelves)}
+</div>'''
     ld = {'@context': 'https://schema.org', '@type': 'Organization', 'name': LOJA['nome_loja'], 'legalName': LOJA['razao_social'],
           'url': BASE + '/', 'email': LOJA['email'], 'telephone': LOJA['telefone'], 'taxID': LOJA['cnpj'],
           'address': {'@type': 'PostalAddress', 'streetAddress': LOJA['endereco'], 'addressCountry': 'BR'}}
@@ -225,6 +240,16 @@ def home():
                                extra_head=f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'))
 
 # ---------------------------------------------------------------- páginas institucionais
+def category_pages():
+    root = '../../'
+    for k, n in CATS.items():
+        ps = [p for p in PRODS if p.get('categoria') == k]
+        if not ps: continue
+        body = f'''<div class="wrap"><p class="crumbs"><a href="{root}">Produtos</a> / {E(n)}</p>
+<section class="intro"><h1>{E(n)}</h1><p>{len(ps)} produtos em kits de 1 a 5 unidades.</p>{finder()}{cat_nav(root, k)}</section>
+<section class="shelf" id="{k}"><div class="grid">{"".join(card(p, root) for p in ps)}</div></section></div>'''
+        write(f'categoria/{k}/index.html', layout(f"{n} | {LOJA['nome_loja']}", body, root, desc=f"{n}: {len(ps)} produtos em kits de 1 a 5 unidades na {LOJA['nome_loja']}.", canonical=f'{BASE}/categoria/{k}/'))
+
 def pages():
     L = LOJA; dias = L.get('prazo_devolucao_dias', 7)
     contato = f'''<dl><dt>Empresa</dt><dd>{E(L['razao_social'])}</dd><dt>CNPJ</dt><dd>{E(L['cnpj'])}</dd><dt>Endereço</dt><dd>{E(L['endereco'])}</dd>
@@ -278,7 +303,8 @@ def feed():
             f += [('g:availability', 'in_stock'), ('g:price', money(v['preco'])), ('g:condition', 'new'),
                   ('g:brand', p['marca']), ('g:identifier_exists', 'no'), ('g:mpn', v['sku']),
                   ('g:item_group_id', p['id']), ('g:google_product_category', GCAT_SUP if p['tipo'] == 'suplemento' else GCAT_COS),
-                  ('g:product_type', 'Suplementos alimentares' if p['tipo'] == 'suplemento' else 'Cosméticos'),
+                  ('g:product_type', ('Suplementos alimentares' if p['tipo'] == 'suplemento' else 'Cosméticos') + ' > ' + CATS.get(p.get('categoria', ''), 'Bem-estar geral')),
+                  ('g:custom_label_2', p.get('categoria', '')),
                   ('g:is_bundle', 'yes' if v['qtd'] > 1 else 'no'), ('g:custom_label_0', 'kit-' + str(v['qtd'])),
                   ('g:age_group', 'adult')]
             if v['qtd'] > 1: f.append(('g:multipack', str(v['qtd'])))
@@ -299,7 +325,7 @@ def feed():
     return len(items)
 
 def sitemap():
-    urls = [BASE + '/'] + [f'{BASE}/{s}/' for s in ['sobre', 'contato', 'entrega', 'pagamento', 'trocas-e-devolucoes', 'politica-de-privacidade', 'termos-de-uso']]
+    urls = [BASE + '/'] + [f'{BASE}/categoria/{k}/' for k in CATS] + [f'{BASE}/{s}/' for s in ['sobre', 'contato', 'entrega', 'pagamento', 'trocas-e-devolucoes', 'politica-de-privacidade', 'termos-de-uso']]
     for p in PRODS:
         urls += [BASE + '/' + kit_path(p, v['qtd']) for v in p['variacoes']]
     write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + ''.join(f'<url><loc>{xesc(u)}</loc></url>' for u in urls) + '</urlset>')
@@ -316,7 +342,7 @@ def main():
     shutil.copytree(os.path.join(ROOT, 'assets'), os.path.join(OUT, 'assets'))
     if '--imagens' in sys.argv:
         baixar_imagens()
-    home(); pages()
+    home(); category_pages(); pages()
     n = 0
     for p in PRODS:
         for v in p['variacoes']:
