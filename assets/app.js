@@ -4,27 +4,30 @@
   var LOJA = window.LOJA || {};
 
   /* ---------- Catálogo ---------- */
-  var grid = document.getElementById('grid');
-  if (grid) {
-    var cards = Array.prototype.slice.call(grid.querySelectorAll('.prod'));
+  var shelves = document.querySelectorAll('.shelf');
+  if (shelves.length) {
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.shelf .prod'));
     var input = document.getElementById('busca');
     var chips = document.querySelectorAll('.chip');
     var count = document.getElementById('count');
-    var tipo = 'todos';
-    var norm = function (s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+    var tipo = new URLSearchParams(location.search).get('secao') || 'todos';
+    var norm = function (s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
     function apply() {
       var q = norm(input.value.trim()), n = 0;
       cards.forEach(function (c) {
         var ok = (!q || norm(c.dataset.busca).indexOf(q) > -1) && (tipo === 'todos' || c.dataset.tipo === tipo);
         c.hidden = !ok; if (ok) n++;
       });
-      count.textContent = n === 1 ? '1 produto' : n + ' produtos';
+      shelves.forEach(function (s) { s.hidden = !s.querySelector('.prod:not([hidden])'); });
+      chips.forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.tipo === tipo ? 'true' : 'false'); });
+      count.textContent = n === 0 ? 'Nenhum produto encontrado. Tente outro nome.' : (n === 1 ? '1 produto' : n + ' produtos');
     }
     input.addEventListener('input', apply);
     chips.forEach(function (ch) {
       ch.addEventListener('click', function () {
-        chips.forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
-        ch.setAttribute('aria-pressed', 'true'); tipo = ch.dataset.tipo; apply();
+        tipo = ch.dataset.tipo; apply();
+        var u = new URL(location.href); if (tipo === 'todos') u.searchParams.delete('secao'); else u.searchParams.set('secao', tipo);
+        u.hash = ''; history.replaceState(null, '', u);
       });
     });
     var q0 = new URLSearchParams(location.search).get('q'); if (q0) input.value = q0;
