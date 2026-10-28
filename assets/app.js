@@ -36,6 +36,9 @@
   var dataEl = document.getElementById('produto-dados');
   if (dataEl) {
     var P = JSON.parse(dataEl.textContent);
+    // Caminhos absolutos: a URL muda ao trocar de kit (history.replaceState), e caminhos relativos quebrariam as fotos.
+    var abs = function (s) { try { return new URL(s, location.href).href; } catch (e) { return s; } };
+    P.variacoes.forEach(function (v) { v.imagens = v.imagens.map(abs); if (v.url) v.url = abs(v.url); });
     var priceEl = document.getElementById('preco'), unitEl = document.getElementById('preco-unit');
     var buy = document.getElementById('comprar'), titleEl = document.getElementById('kit-titulo');
     var main = document.getElementById('foto'), thumbs = document.getElementById('thumbs');
