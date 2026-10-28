@@ -5,34 +5,31 @@
 
   /* ---------- Catálogo ---------- */
   var shelves = document.querySelectorAll('.shelf');
-  if (shelves.length) {
-    var cards = Array.prototype.slice.call(document.querySelectorAll('.shelf .prod'));
-    var input = document.getElementById('busca');
-    var chips = document.querySelectorAll('.chip');
+  var input = document.getElementById('busca');
+  if (shelves.length && input) {
     var count = document.getElementById('count');
-    var tipo = new URLSearchParams(location.search).get('secao') || 'todos';
+    var best = document.getElementById('mais-vendidos');
     var norm = function (s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
     function apply() {
-      var q = norm(input.value.trim()), n = 0;
-      cards.forEach(function (c) {
-        var ok = (!q || norm(c.dataset.busca).indexOf(q) > -1) && (tipo === 'todos' || c.dataset.tipo === tipo);
-        c.hidden = !ok; if (ok) n++;
+      var q = norm(input.value.trim()), n = 0, seen = {};
+      if (best) best.hidden = !!q;
+      shelves.forEach(function (s) {
+        if (s === best) return;
+        s.classList.toggle('searching', !!q);
+        var vis = 0;
+        s.querySelectorAll('.prod').forEach(function (c) {
+          var ok = !q || norm(c.dataset.busca).indexOf(q) > -1;
+          c.hidden = !ok; if (ok) { vis++; if (!seen[c.dataset.sku]) { seen[c.dataset.sku] = 1; n++; } }
+        });
+        s.hidden = !vis;
       });
-      shelves.forEach(function (s) { s.hidden = !s.querySelector('.prod:not([hidden])'); });
-      chips.forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.tipo === tipo ? 'true' : 'false'); });
-      count.textContent = n === 0 ? 'Nenhum produto encontrado. Tente outro nome.' : (n === 1 ? '1 produto' : n + ' produtos');
+      count.textContent = !q ? '' : (n === 0 ? 'Nenhum produto encontrado. Tente outro nome.' : (n === 1 ? '1 produto encontrado' : n + ' produtos encontrados'));
     }
     input.addEventListener('input', apply);
-    chips.forEach(function (ch) {
-      ch.addEventListener('click', function () {
-        tipo = ch.dataset.tipo; apply();
-        var u = new URL(location.href); if (tipo === 'todos') u.searchParams.delete('secao'); else u.searchParams.set('secao', tipo);
-        u.hash = ''; history.replaceState(null, '', u);
-      });
-    });
     var q0 = new URLSearchParams(location.search).get('q'); if (q0) input.value = q0;
     apply();
-    if (T.viewList) T.viewList(cards.slice(0, 40).map(function (c) { return { sku: c.dataset.sku, nome: c.dataset.nome, marca: c.dataset.marca, preco: +c.dataset.preco, kit: '1', categoria: c.dataset.tipo }; }));
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.shelf .prod'));
+    if (T.viewList) T.viewList(cards.slice(0, 40).map(function (c) { return { sku: c.dataset.sku, nome: c.dataset.nome, marca: c.dataset.marca, preco: +c.dataset.preco, kit: '1', categoria: c.dataset.cat }; }));
   }
 
   /* ---------- Produto ---------- */
