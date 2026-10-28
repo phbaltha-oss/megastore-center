@@ -119,7 +119,7 @@ def layout(title, body, root, desc='', canonical='', extra_head='', noindex=Fals
 <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="top"><div class="wrap">
 <a class="logo" href="{root}">{E(LOJA['nome_loja'])}</a>
-<nav aria-label="Principal"><a href="{root}">Produtos</a><a href="{root}entrega/">Entrega</a><a href="{root}trocas-e-devolucoes/">Trocas</a><a href="{root}contato/">Contato</a></nav>
+<nav aria-label="Principal"><a href="{root}?secao=suplemento#suplementos">Suplementos</a><a href="{root}?secao=cosmetico#cosmeticos">Cosméticos</a><a href="{root}entrega/">Entrega</a><a href="{root}trocas-e-devolucoes/">Trocas</a><a href="{root}contato/">Contato</a></nav>
 </div></header>
 <div class="strip"><div class="wrap"><span>{E(LOJA['frete'])}</span><span>Pagamento por {E(LOJA['formas_pagamento'].split(',')[0])}, cartão ou boleto</span><span>CNPJ {E(LOJA['cnpj'])}</span></div></div>
 <main id="conteudo">
@@ -201,20 +201,23 @@ def product_page(p, q):
 # ---------------------------------------------------------------- catálogo
 def home():
     root = ''
-    cards = []
-    for p in PRODS:
+    def card(p):
         v1 = p['variacoes'][0]
-        cards.append(f'''<a class="prod" href="{kit_path(p,1)}" data-busca="{E(p['nome']+' '+p['marca']+' '+' '.join(p['componentes']))}" data-tipo="{p['tipo']}" data-sku="{v1['sku']}" data-nome="{E(p['nome'])}" data-marca="{E(p['marca'])}" data-preco="{v1['preco']}">
-<span class="ph"><img src="{E(img(v1['imagens'][0], root))}" alt="{E(p['nome'])}" loading="lazy" referrerpolicy="no-referrer"></span>
-<span class="bd"><h3>{E(p['nome'])}</h3><span class="meta">{E(FORMA[p['forma']])}{' · ' + E(p['conteudo']) if p['conteudo'] else ''}</span>
-<span class="from">1 {p['unidade']} <b>{brl(v1['preco'])}</b></span></span></a>''')
+        return f'''<a class="prod" href="{kit_path(p,1)}" data-busca="{E(p['nome']+' '+p['marca']+' '+' '.join(p['componentes']))}" data-tipo="{p['tipo']}" data-sku="{v1['sku']}" data-nome="{E(p['nome'])}" data-marca="{E(p['marca'])}" data-preco="{v1['preco']}">
+<div class="ph"><img src="{E(img(v1['imagens'][0], root))}" alt="{E(p['nome'])}" loading="lazy" referrerpolicy="no-referrer"></div>
+<div class="bd"><h3>{E(p['nome'])}</h3><p class="meta">{E(FORMA[p['forma']])}{' · ' + E(p['conteudo']) if p['conteudo'] else ''}</p>
+<p class="from">1 {p['unidade']} <b>{brl(v1['preco'])}</b></p></div></a>'''
+    sup = [p for p in PRODS if p['tipo'] == 'suplemento']
+    cos = [p for p in PRODS if p['tipo'] == 'cosmetico']
     body = f'''<div class="wrap">
-<section class="intro"><h1>Encontre seu suplemento</h1>
+<section class="intro"><h1>Encontre seu produto</h1>
 <p>{len(PRODS)} produtos em kits de 1 a 5 unidades. Quanto maior o kit, menor o preço por unidade.</p>
 <div class="finder"><label class="skip" for="busca">Buscar produto</label><input id="busca" type="search" placeholder="Busque pelo nome ou ingrediente" autocomplete="off">
-<div class="chips" role="group" aria-label="Filtrar por tipo"><button class="chip" type="button" data-tipo="todos" aria-pressed="true">Todos</button><button class="chip" type="button" data-tipo="suplemento" aria-pressed="false">Suplementos</button><button class="chip" type="button" data-tipo="cosmetico" aria-pressed="false">Cosméticos</button></div></div>
+<div class="chips" role="group" aria-label="Escolher seção"><button class="chip" type="button" data-tipo="todos" aria-pressed="true">Todos ({len(PRODS)})</button><button class="chip" type="button" data-tipo="suplemento" aria-pressed="false">Suplementos ({len(sup)})</button><button class="chip" type="button" data-tipo="cosmetico" aria-pressed="false">Cosméticos ({len(cos)})</button></div></div>
 <p class="count" id="count" aria-live="polite"></p></section>
-<div class="grid" id="grid">{''.join(cards)}</div></div>'''
+<section class="shelf" id="suplementos" data-tipo="suplemento"><h2>Suplementos alimentares</h2><div class="grid">{''.join(card(p) for p in sup)}</div></section>
+<section class="shelf" id="cosmeticos" data-tipo="cosmetico"><h2>Cosméticos e cuidados com o corpo</h2><div class="grid">{''.join(card(p) for p in cos)}</div></section>
+<div id="grid" hidden></div></div>'''
     ld = {'@context': 'https://schema.org', '@type': 'Organization', 'name': LOJA['nome_loja'], 'legalName': LOJA['razao_social'],
           'url': BASE + '/', 'email': LOJA['email'], 'telephone': LOJA['telefone'], 'taxID': LOJA['cnpj'],
           'address': {'@type': 'PostalAddress', 'streetAddress': LOJA['endereco'], 'addressCountry': 'BR'}}
