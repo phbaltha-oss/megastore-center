@@ -22,6 +22,8 @@ for _pid, _d in _CK.get('rxpay', {}).items():
 PRODS = json.load(open(os.path.join(ROOT, 'data/produtos.json'), encoding='utf-8'))
 CATS = json.load(open(os.path.join(ROOT, 'config/categorias.json'), encoding='utf-8'))
 PRODS.sort(key=lambda p: (-p.get('vendas', 0), p['nome'].lower()))
+# ordem da vitrine: produtos liberados para o Google e mais vendidos primeiro
+PRODS.sort(key=lambda p: (not p.get('incluir_google_shopping'), -p.get('vendas', 0), p['nome'].lower()))
 # fotos: "ml:" é atalho para o CDN do Mercado Livre; kit sem fotos próprias usa as do pote único
 for _p in PRODS:
     for _v in _p['variacoes']:
@@ -222,9 +224,9 @@ def home():
     top = sorted([p for p in PRODS if p.get('mais_vendido')], key=lambda p: p['mais_vendido'])
     shelves = []
     for k, n in CATS.items():
-        ps = [p for p in PRODS if p.get('categoria') == k]
+        ps = [p for p in PRODS if p.get('categoria') == k and not p.get('mais_vendido')]
         if ps:
-            shelves.append(f'<section class="shelf" id="{k}"><div class="shelf-head"><h2>{E(n)}</h2><a href="categoria/{k}/">Ver todos ({len(ps)})</a></div><div class="grid">{"".join(card(p, root).replace('class="prod"', 'class="prod more"', 1) if i >= 10 else card(p, root) for i, p in enumerate(ps))}</div></section>')
+            shelves.append(f'<section class="shelf" id="{k}"><div class="shelf-head"><h2>{E(n)}</h2><a href="categoria/{k}/">Ver todos ({sum(1 for x in PRODS if x.get('categoria') == k)})</a></div><div class="grid">{"".join(card(p, root).replace('class="prod"', 'class="prod more"', 1) if i >= 10 else card(p, root) for i, p in enumerate(ps))}</div></section>')
     body = f'''<div class="wrap">
 <section class="intro"><h1>Encontre seu produto</h1>
 <p>{len(PRODS)} produtos em kits de 1 a 5 unidades. Quanto maior o kit, menor o preço por unidade.</p>
