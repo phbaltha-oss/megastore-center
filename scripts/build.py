@@ -12,7 +12,13 @@ OUT = os.path.join(ROOT, '_site')
 E = lambda s: html.escape(str(s), quote=True)
 
 LOJA = json.load(open(os.path.join(ROOT, 'config/loja.json'), encoding='utf-8'))
-CHECK = json.load(open(os.path.join(ROOT, 'config/checkout.json'), encoding='utf-8')).get('links', {})
+import base64
+_CK = json.load(open(os.path.join(ROOT, 'config/checkout.json'), encoding='utf-8'))
+CHECK = dict(_CK.get('links', {}))
+# formato compacto da RXPAY: {"produto": {"ref": "...", "ofertas": {"1": "id", ...}}}
+for _pid, _d in _CK.get('rxpay', {}).items():
+    for _q, _oid in _d.get('ofertas', {}).items():
+        CHECK.setdefault(f'{_pid}-k{_q}', 'https://go.rxpay.com.br/?id=' + base64.b64encode(f"{_d['ref']}:{_oid}".encode()).decode())
 PRODS = json.load(open(os.path.join(ROOT, 'data/produtos.json'), encoding='utf-8'))
 # fotos: "ml:" é atalho para o CDN do Mercado Livre; kit sem fotos próprias usa as do pote único
 for _p in PRODS:
@@ -46,32 +52,32 @@ def baixar_imagens():
     except ImportError:
         Image = None
     os.makedirs(os.path.join(OUT, 'img'), exist_ok=True)
-    cache = {}
-    ok = fail = 0
+    from concurrent.futures import ThreadPoolExecutor
+    def fetch_one(u):
+        nome = 'img/' + hashlib.md5(u.encode()).hexdigest()[:16] + '.jpg'
+        dest = os.path.join(OUT, nome)
+        try:
+            if not os.path.exists(dest):
+                req = urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'})
+                data = urllib.request.urlopen(req, timeout=20).read()
+                open(dest, 'wb').write(data)
+                if Image:
+                    im = Image.open(dest).convert('RGB'); im.thumbnail((900, 900)); im.save(dest, 'JPEG', quality=82, optimize=True)
+            return u, nome
+        except Exception:
+            return u, u
+    wanted = []
     for p in PRODS:
         for v in p['variacoes']:
             lim = 5 if v['qtd'] == 1 else 2
-            novas = []
-            for i, u in enumerate(v['imagens']):
-                if i >= lim or not u.startswith('http'):
-                    novas.append(u); continue
-                if u in cache:
-                    novas.append(cache[u]); continue
-                nome = 'img/' + hashlib.md5(u.encode()).hexdigest()[:16] + '.jpg'
-                dest = os.path.join(OUT, nome)
-                try:
-                    if not os.path.exists(dest):
-                        req = urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'})
-                        data = urllib.request.urlopen(req, timeout=20).read()
-                        open(dest, 'wb').write(data)
-                        if Image:
-                            im = Image.open(dest).convert('RGB')
-                            im.thumbnail((900, 900))
-                            im.save(dest, 'JPEG', quality=82, optimize=True)
-                    cache[u] = nome; novas.append(nome); ok += 1
-                except Exception as e:
-                    cache[u] = u; novas.append(u); fail += 1
-            v['imagens'] = novas
+            wanted += [u for u in v['imagens'][:lim] if u.startswith('http')]
+    with ThreadPoolExecutor(16) as ex:
+        cache = dict(ex.map(fetch_one, sorted(set(wanted))))
+    ok = sum(1 for k, v in cache.items() if k != v); fail = len(cache) - ok
+    for p in PRODS:
+        for v in p['variacoes']:
+            lim = 5 if v['qtd'] == 1 else 2
+            v['imagens'] = [cache.get(u, u) for u in v['imagens']]
     print(f'imagens: {ok} baixadas, {fail} mantidas como link externo')
 
 # ---------------------------------------------------------------- layout
