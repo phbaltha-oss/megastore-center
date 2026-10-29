@@ -3,34 +3,71 @@
   var T = window.Track || { withAttribution: function (u) { return u; } };
   var LOJA = window.LOJA || {};
 
-  /* ---------- Catálogo ---------- */
-  var shelves = document.querySelectorAll('.shelf');
-  var input = document.getElementById('busca');
-  if (shelves.length && input) {
-    var count = document.getElementById('count');
-    var best = document.getElementById('mais-vendidos');
-    var norm = function (s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
-    function apply() {
-      var q = norm(input.value.trim()), n = 0, seen = {};
-      if (best) best.hidden = !!q;
-      shelves.forEach(function (s) {
-        if (s === best) return;
-        s.classList.toggle('searching', !!q);
-        var vis = 0;
-        s.querySelectorAll('.prod').forEach(function (c) {
-          var ok = !q || norm(c.dataset.busca).indexOf(q) > -1;
-          c.hidden = !ok; if (ok) { vis++; if (!seen[c.dataset.sku]) { seen[c.dataset.sku] = 1; n++; } }
-        });
-        s.hidden = !vis;
-      });
-      count.textContent = !q ? '' : (n === 0 ? 'Nenhum produto encontrado. Tente outro nome.' : (n === 1 ? '1 produto encontrado' : n + ' produtos encontrados'));
-    }
-    input.addEventListener('input', apply);
-    var q0 = new URLSearchParams(location.search).get('q'); if (q0) input.value = q0;
-    apply();
-    var cards = Array.prototype.slice.call(document.querySelectorAll('.shelf .prod'));
-    if (T.viewList) T.viewList(cards.slice(0, 40).map(function (c) { return { sku: c.dataset.sku, nome: c.dataset.nome, marca: c.dataset.marca, preco: +c.dataset.preco, kit: '1', categoria: c.dataset.cat }; }));
+  var norm = function (s) { return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+
+  /* ---------- Destaques (hero) ---------- */
+  var hero = document.querySelector('.hero');
+  if (hero) {
+    var slides = hero.querySelectorAll('.slide'), dots = hero.querySelectorAll('.dots button'), cur = 0, timer;
+    var go = function (i) {
+      cur = (i + slides.length) % slides.length;
+      slides.forEach(function (s, j) { s.classList.toggle('on', j === cur); });
+      dots.forEach(function (d, j) { d.setAttribute('aria-current', j === cur ? 'true' : 'false'); });
+    };
+    var auto = function () { clearInterval(timer); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(function () { go(cur + 1); }, 6000); };
+    hero.querySelector('.prev').addEventListener('click', function () { go(cur - 1); auto(); });
+    hero.querySelector('.next').addEventListener('click', function () { go(cur + 1); auto(); });
+    dots.forEach(function (d, j) { d.addEventListener('click', function () { go(j); auto(); }); });
+    hero.addEventListener('mouseenter', function () { clearInterval(timer); });
+    hero.addEventListener('mouseleave', auto);
+    auto();
   }
+
+  /* ---------- Carrosséis ---------- */
+  document.querySelectorAll('.car').forEach(function (c) {
+    var t = c.querySelector('.car-track'), prev = c.querySelector('.prev'), next = c.querySelector('.next');
+    var upd = function () { prev.disabled = t.scrollLeft < 8; next.disabled = t.scrollLeft + t.clientWidth >= t.scrollWidth - 8; };
+    prev.addEventListener('click', function () { t.scrollBy({ left: -t.clientWidth * 0.9 }); });
+    next.addEventListener('click', function () { t.scrollBy({ left: t.clientWidth * 0.9 }); });
+    t.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd); upd();
+    c._upd = upd;
+  });
+
+  /* ---------- Chips de filtro (por categoria ou apresentação) ---------- */
+  document.querySelectorAll('.fchips').forEach(function (g) {
+    var scope = g.closest('.shelf') || document;
+    var list = scope.querySelector('.car-track') || document.getElementById('lista');
+    g.addEventListener('click', function (e) {
+      var b = e.target.closest('.fchip'); if (!b) return;
+      g.querySelectorAll('.fchip').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      var f = b.dataset.f;
+      list.querySelectorAll('.prod').forEach(function (p) { p.hidden = !!f && p.dataset.cat !== f && p.dataset.forma !== f; });
+      list.scrollLeft = 0;
+      var car = list.closest('.car'); if (car && car._upd) car._upd();
+    });
+  });
+
+  /* ---------- Busca ---------- */
+  var q0 = new URLSearchParams(location.search).get('q') || '';
+  var qIn = document.getElementById('q'); if (qIn && q0) qIn.value = q0;
+  var lista = document.querySelector('.grid.searchable');
+  if (lista) {
+    var count = document.getElementById('count'), h1 = document.querySelector('.list-head h1');
+    var apply = function (q) {
+      var nq = norm(q.trim()), n = 0;
+      lista.querySelectorAll('.prod').forEach(function (c) { var ok = !nq || norm(c.dataset.busca).indexOf(nq) > -1; c.hidden = !ok; if (ok) n++; });
+      if (nq) { h1.innerHTML = '<span>Busca:</span> ' + q.replace(/[<>&"]/g, ''); count.textContent = n === 0 ? 'Nenhum produto encontrado. Tente outro nome.' : (n === 1 ? '1 produto encontrado' : n + ' produtos encontrados'); }
+      else count.textContent = '';
+    };
+    apply(q0);
+    if (qIn) qIn.addEventListener('input', function () { apply(qIn.value); });
+  }
+
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.prod'));
+  if (cards.length && T.viewList) T.viewList(cards.slice(0, 40).map(function (c) { return { sku: c.dataset.sku, nome: c.dataset.nome, marca: c.dataset.marca, preco: +c.dataset.preco, kit: '1', categoria: c.dataset.cat }; }));
+
+  /* fecha o menu de categorias ao clicar fora */
+  document.addEventListener('click', function (e) { document.querySelectorAll('details.dd[open]').forEach(function (d) { if (!d.contains(e.target)) d.open = false; }); });
 
   /* ---------- Produto ---------- */
   var dataEl = document.getElementById('produto-dados');
@@ -65,6 +102,7 @@
       priceEl.textContent = brl(current.preco);
       unitEl.textContent = current.qtd === 1 ? '1 ' + P.unidade : brl(current.preco / current.qtd) + ' por ' + P.unidade + ' · ' + current.qtd + ' ' + P.unidade_plural;
       titleEl.textContent = current.titulo;
+      var ks = document.getElementById('kit-sel'); if (ks) ks.textContent = current.qtd + ' ' + (current.qtd === 1 ? P.unidade : P.unidade_plural);
       gallery(current);
       if (!silent && current.url) history.replaceState(null, '', current.url);
       if (!silent && T.selectKit) T.selectKit(payload(current));
