@@ -92,12 +92,42 @@ def track_js():
         'adsCheckout': TR.get('google_ads_label_checkout', ''), 'adsWhatsapp': TR.get('google_ads_label_whatsapp', ''),
         'meta': TR.get('meta_pixel', ''), 'tiktok': TR.get('tiktok_pixel', '')})
 
+ICONS = {
+ 'truck': '<path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+ 'box': '<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
+ 'card': '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+ 'shield': '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+ 'chat': '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/>',
+ 'doc': '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+ 'back': '<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10h-3"/>',
+ 'search': '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+ 'menu': '<path d="M4 7h16M4 12h16M4 17h16"/>',
+ 'mail': '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+}
+def ico(n, cls='ico'): return f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true">{ICONS[n]}</svg>'
+
+CAT_EMO = {'emagrecimento': '🔥', 'creatinas': '💪', 'energia': '⚡', 'articulacoes': '🦴', 'memoria-sono': '🧠', 'masculina': '🧔',
+           'feminina': '🌸', 'cabelo-pele': '✨', 'metabolismo': '⚖️', 'visao': '👁️', 'digestao': '🌿', 'vitaminas': '🍊',
+           'bem-estar': '💚', 'cosmeticos': '🧴'}
+CAT_BG = ['#E3F4EA', '#FFF1D6', '#E6EEFB', '#FBE6EC', '#EEE7FA', '#E1F3F4', '#F6EEDF']
+OBJ = [('articulacoes', 'Articulações'), ('energia', 'Energia'), ('feminina', 'Mulher'), ('masculina', 'Homem'), ('cabelo-pele', 'Pele e cabelo'),
+       ('memoria-sono', 'Foco e memória'), ('visao', 'Visão'), ('digestao', 'Intestino'), ('emagrecimento', 'Emagrecimento'), ('vitaminas', 'Imunidade')]
+NAV = ['emagrecimento', 'energia', 'articulacoes', 'memoria-sono', 'masculina', 'feminina', 'cabelo-pele', 'vitaminas']
+
+def ccount(k): return sum(1 for p in PRODS if p.get('categoria') == k)
+
 def layout(title, body, root, desc='', canonical='', extra_head='', noindex=False):
     v = []
     if TR.get('google_site_verification'): v.append(f'<meta name="google-site-verification" content="{E(TR["google_site_verification"])}">')
     if TR.get('meta_domain_verification'): v.append(f'<meta name="facebook-domain-verification" content="{E(TR["meta_domain_verification"])}">')
     gtm_ns = f'<noscript><iframe src="https://www.googletagmanager.com/ns.html?id={E(TR["google_tag_manager"])}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' if TR.get('google_tag_manager') else ''
     loja_js = json.dumps({'whatsapp': WA, 'email': LOJA.get('email', ''), 'checkout': CHECK})
+    nome = LOJA['nome_loja']; a, _, b = nome.partition(' ')
+    msgs = [LOJA['frete'], 'Entrega em até 12 dias úteis para todo o Brasil', 'Kits de 2 a 5 unidades com desconto progressivo',
+            'Cartão em até 12x, Pix ou boleto', 'Compra 100% segura', 'Atendimento ' + LOJA['horario_atendimento'].lower()]
+    ann = ''.join(f'<span>{E(m)}</span>' for m in msgs)
+    cats_dd = ''.join(f'<li><a href="{root}categoria/{k}/"><span aria-hidden="true">{CAT_EMO.get(k, "")}</span> {E(n)} <small>{ccount(k)}</small></a></li>' for k, n in CATS.items() if ccount(k))
+    navl = ''.join(f'<a href="{root}categoria/{k}/">{E(CATS[k].split(" e ")[0].split(",")[0])}</a>' for k in NAV)
     return f'''<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -108,11 +138,12 @@ def layout(title, body, root, desc='', canonical='', extra_head='', noindex=Fals
 {'<meta name="robots" content="noindex">' if noindex else ''}
 {f'<link rel="canonical" href="{E(canonical)}">' if canonical else ''}
 <meta property="og:title" content="{E(title)}">
-<meta property="og:site_name" content="{E(LOJA['nome_loja'])}">
+<meta property="og:site_name" content="{E(nome)}">
 <meta property="og:locale" content="pt_BR">
+<meta name="theme-color" content="#0B3B2E">
 {''.join(v)}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{root}assets/style.css">
 <script>window.LOJA_ROOT={json.dumps(root)};window.LOJA_TRACK={track_js()};window.LOJA={loja_js};</script>
 <script src="{root}assets/tracking.js"></script>
@@ -121,21 +152,33 @@ def layout(title, body, root, desc='', canonical='', extra_head='', noindex=Fals
 <body>
 {gtm_ns}
 <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-<header class="top"><div class="wrap">
-<a class="logo" href="{root}">{E(LOJA['nome_loja'])}</a>
-<nav aria-label="Principal"><a href="{root}#mais-vendidos">Mais vendidos</a><a href="{root}#categorias">Categorias</a><a href="{root}entrega/">Entrega</a><a href="{root}trocas-e-devolucoes/">Trocas</a><a href="{root}contato/">Contato</a></nav>
-</div></header>
-<div class="strip"><div class="wrap"><span>{E(LOJA['frete'])}</span><span>Pagamento por {E(LOJA['formas_pagamento'].split(',')[0])}, cartão ou boleto</span><span>CNPJ {E(LOJA['cnpj'])}</span></div></div>
+<div class="ann" aria-label="Vantagens"><div class="ann-track">{ann}{ann.replace('<span>', '<span aria-hidden="true">')}</div></div>
+<header class="hd">
+<div class="wrap hd-row">
+<a class="logo" href="{root}" aria-label="{E(nome)} – início"><span>{E(a)}</span><b>{E(b)}</b></a>
+<form class="search" action="{root}busca/" role="search"><label class="skip" for="q">Buscar produtos</label><input id="q" name="q" type="search" placeholder="O que você procura hoje?" autocomplete="off"><button type="submit">{ico('search')}<span>Buscar</span></button></form>
+<div class="hd-help">{ico('mail')}<div><a href="{root}contato/">Atendimento</a><small>{E(LOJA['horario_atendimento'])}</small></div></div>
+</div>
+<nav class="nv" aria-label="Categorias"><div class="wrap nv-row">
+<details class="dd"><summary>{ico('menu')} Categorias</summary><ul>{cats_dd}</ul></details>
+{navl}<a href="{root}#mais-vendidos" class="hl">Mais vendidos</a>
+</div></nav>
+</header>
 <main id="conteudo">
 {body}
 </main>
-<footer class="foot"><div class="wrap">
-<div><h3>{E(LOJA['nome_loja'])}</h3><p>{E(LOJA['razao_social'])}<br>CNPJ {E(LOJA['cnpj'])}<br>{E(LOJA['endereco'])}</p>
-<p>Atendimento: {E(LOJA['horario_atendimento'])}<br><a href="mailto:{E(LOJA['email'])}">{E(LOJA['email'])}</a>{' · ' + E(LOJA['telefone']) if LOJA.get('telefone') else ''}</p></div>
-<div><h3>Compra</h3><ul><li><a href="{root}entrega/">Prazos e entrega</a></li><li><a href="{root}pagamento/">Formas de pagamento</a></li><li><a href="{root}trocas-e-devolucoes/">Trocas e devoluções</a></li></ul></div>
-<div><h3>A loja</h3><ul><li><a href="{root}sobre/">Quem somos</a></li><li><a href="{root}contato/">Contato</a></li><li><a href="{root}politica-de-privacidade/">Privacidade</a></li><li><a href="{root}termos-de-uso/">Termos de uso</a></li></ul></div>
-<p class="legal">Suplementos alimentares não são medicamentos e não se destinam a diagnosticar, tratar, curar ou prevenir doenças. Consulte um médico ou nutricionista antes de consumir. Imagens ilustrativas; confira sempre o rótulo. © {YEAR} {E(LOJA['razao_social'])}.</p>
-</div></footer>
+<footer class="ft">
+<div class="wrap ft-grid">
+<div><a class="logo" href="{root}"><span>{E(a)}</span><b>{E(b)}</b></a><p>{E(LOJA['slogan'])}.</p>
+<p class="ft-h">Formas de pagamento</p><div class="pay"><span>Pix</span><span>Visa</span><span>Mastercard</span><span>Elo</span><span>Boleto</span></div></div>
+<div><p class="ft-h">Institucional</p><ul><li><a href="{root}sobre/">Quem somos</a></li><li><a href="{root}contato/">Fale conosco</a></li><li><a href="{root}#mais-vendidos">Mais vendidos</a></li><li><a href="{root}busca/">Todos os produtos</a></li></ul></div>
+<div><p class="ft-h">Ajuda</p><ul><li><a href="{root}entrega/">Prazos e entrega</a></li><li><a href="{root}pagamento/">Formas de pagamento</a></li><li><a href="{root}trocas-e-devolucoes/">Trocas e devoluções</a></li></ul></div>
+<div><p class="ft-h">Políticas</p><ul><li><a href="{root}politica-de-privacidade/">Privacidade</a></li><li><a href="{root}termos-de-uso/">Termos de uso</a></li><li><a href="{root}trocas-e-devolucoes/">Direito de arrependimento</a></li></ul>
+<p class="ft-h">Atendimento</p><p>{E(LOJA['horario_atendimento'])}<br><a href="mailto:{E(LOJA['email'])}">{E(LOJA['email'])}</a>{'<br>' + E(LOJA['telefone']) if LOJA.get('telefone') else ''}</p></div>
+</div>
+<div class="ft-legal"><div class="wrap"><p>Suplementos alimentares não são medicamentos e não se destinam a diagnosticar, tratar, curar ou prevenir doenças. Consulte um médico ou nutricionista antes de consumir. Imagens ilustrativas; confira sempre o rótulo.</p>
+<p>© {YEAR} {E(nome)} · {E(LOJA['razao_social'])} · CNPJ {E(LOJA['cnpj'])} · {E(LOJA['endereco'])}</p></div></div>
+</footer>
 {f'<a class="wa" data-wa href="https://wa.me/{WA}" target="_blank" rel="noopener">Atendimento no WhatsApp</a>' if WA else ''}
 <script src="{root}assets/app.js"></script>
 </body></html>'''
@@ -143,19 +186,26 @@ def layout(title, body, root, desc='', canonical='', extra_head='', noindex=Fals
 # ---------------------------------------------------------------- páginas de produto
 def kit_path(p, q): return f"produto/{p['id']}/" if q == 1 else f"produto/{p['id']}/kit-{q}/"
 
-def kit_jars(q): return '<span class="jars" aria-hidden="true">' + '<span class="jar"></span>' * q + '</span>'
+def unid(p, q): return f"{q} {p['unidade'] if q == 1 else PL[p['unidade']]}"
+
+def save_pct(p, v):
+    p1 = p['variacoes'][0]['preco']
+    return round((1 - v['preco'] / (p1 * v['qtd'])) * 100) if v['qtd'] > 1 else 0
 
 def product_page(p, q):
     root = '../../' if q == 1 else '../../../'
     u = p['unidade']; up = PL[u]
     vs = p['variacoes']; sel = next(v for v in vs if v['qtd'] == q)
     p1 = vs[0]['preco']
+    best = max(vs, key=lambda v: save_pct(p, v))
     kits = []
     for v in vs:
-        pu = v['preco'] / v['qtd']
-        save = round((1 - pu / p1) * 100) if v['qtd'] > 1 else 0
-        kits.append(f'''<div class="kit"><input type="radio" name="kit" id="k{v['qtd']}" value="{v['qtd']}" {'checked' if v['qtd']==q else ''}>
-<label for="k{v['qtd']}">{kit_jars(v['qtd'])}<span class="q">{v['qtd']} {u if v['qtd']==1 else up}</span><span class="pu">{brl(pu)} cada</span>{f'<span class="save">-{save}%</span>' if save >= 3 else ''}</label></div>''')
+        s = save_pct(p, v); qq = v['qtd']
+        kits.append(f'''<label class="kr" data-q="{qq}"><input type="radio" name="kit" value="{qq}" {'checked' if qq == q else ''}>
+<span class="kr-dot" aria-hidden="true"></span>
+<span class="kr-l"><b>{unid(p, qq).upper()}</b><small>{brl(v['preco']/qq)} por {u}</small></span>
+<span class="kr-r">{f'<s title="{qq} × {brl(p1)} comprando 1 {u} por vez">{brl(p1*qq)}</s>' if s >= 3 else ''}<b>{brl(v['preco'])}</b>{f'<em>{s}% OFF</em>' if s >= 3 else ''}</span>
+{'<i class="kr-tag">Maior economia</i>' if v is best and s >= 3 else ''}</label>''')
     D = p['descricao']
     imgs = [img(x, root) for x in sel['imagens']] or ['']
     thumbs = ''.join(f'<button type="button" aria-label="Ver foto {i+1}" aria-current="{"true" if i==0 else "false"}"><img src="{E(s)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>' for i, s in enumerate(imgs))
@@ -175,65 +225,111 @@ def product_page(p, q):
           'brand': {'@type': 'Brand', 'name': p['marca']}, 'image': [img(x, BASE + '/') for x in sel['imagens'][:3]],
           'description': D['apresentacao'], 'offers': offers}
     facts = [('Apresentação', FORMA[p['forma']]), ('Conteúdo', f"{p['conteudo']} por {u}" if p['conteudo'] else '—'), ('Marca', p['marca']), ('Condição', 'Novo, lacrado')]
+    cat = p.get('categoria', 'bem-estar')
+    aviso = ('Este produto é um suplemento alimentar e não é medicamento. Não se destina a diagnosticar, tratar, curar ou prevenir doenças. Resultados variam de pessoa para pessoa.'
+             if p['tipo'] == 'suplemento' else 'Produto cosmético de uso externo. Resultados variam de pessoa para pessoa.')
+    steps = [('Escolha o seu kit', f'Kits de 2 a 5 {up} saem mais em conta por {u} e garantem a sua rotina por mais tempo.'),
+             ('Use como indicado', D['modo_de_uso']),
+             ('Guarde bem', 'Mantenha em local seco e fresco, longe da luz e do alcance de crianças. Confira sempre o rótulo.')]
+    tiles = ''.join(f'''<a class="kt{' on' if v['qtd']==q else ''}" href="{root}{kit_path(p, v['qtd'])}"><span class="kt-q">{v['qtd']}</span><span>{unid(p, v['qtd'])}</span><b>{brl(v['preco'])}</b><small>{brl(v['preco']/v['qtd'])} por {u}</small>{f'<em>{save_pct(p, v)}% OFF</em>' if save_pct(p, v) >= 3 else ''}</a>''' for v in vs)
     body = f'''<div class="wrap">
-<p class="crumbs"><a href="{root}">Produtos</a> / <a href="{root}categoria/{p.get('categoria','bem-estar')}/">{E(CATS.get(p.get('categoria',''),''))}</a> / {E(p['nome'])}</p>
+<nav class="crumbs" aria-label="Você está em"><a href="{root}">Início</a> › <a href="{root}categoria/{cat}/">{E(CATS.get(cat, ''))}</a> › <span>{E(p['nome'])}</span></nav>
 <div class="pp">
-<div><div class="gal-main"><img id="foto" src="{E(imgs[0])}" alt="{E(sel['titulo'])}" referrerpolicy="no-referrer"></div><div class="thumbs" id="thumbs">{thumbs}</div></div>
-<div>
+<div class="gal"><div class="gal-main"><img id="foto" src="{E(imgs[0])}" alt="{E(sel['titulo'])}" referrerpolicy="no-referrer"></div><div class="thumbs" id="thumbs">{thumbs}</div></div>
+<div class="buy">
 <p class="brand">{E(p['marca'])}</p>
 <h1 id="kit-titulo">{E(sel['titulo'])}</h1>
-<p class="price" id="preco">{brl(sel['preco'])}</p>
+<p class="sub">{E(FORMA[p['forma']])}{' · ' + E(p['conteudo']) + ' por ' + u if p['conteudo'] else ''}</p>
+<fieldset class="kitbox"><legend>Leve mais, pague menos!</legend><p class="kitbox-sub">Selecionado: <b id="kit-sel">{unid(p, q)}</b></p>
+{''.join(kits)}</fieldset>
+<div class="total"><span>Total</span><b id="preco">{brl(sel['preco'])}</b></div>
 <p class="unit" id="preco-unit">{'1 ' + u if q == 1 else brl(sel['preco']/q) + ' por ' + u + ' · ' + str(q) + ' ' + up}</p>
-<fieldset class="kits"><legend>Escolha a quantidade</legend><div class="kit-list">{''.join(kits)}</div></fieldset>
-<button class="btn" id="comprar" type="button">Comprar agora</button>
-<p class="buy-note">{E(LOJA['frete'])}. {E(LOJA['prazo_envio'])}. Pagamento processado com segurança pela RXPAY.</p>
-<ul class="facts">{''.join(f'<li><span>{a}</span><b>{E(b)}</b></li>' for a, b in facts)}</ul>
+<button class="btn btn-buy" id="comprar" type="button">Comprar</button>
+<p class="buy-note">Cartão em até 12x, Pix ou boleto · {E(LOJA['frete'])}</p>
+<ul class="trust"><li>{ico('shield')}<span><b>Compra segura</b>Pagamento pela RXPAY</span></li><li>{ico('doc')}<span><b>Nota fiscal</b>Em todos os pedidos</span></li><li>{ico('back')}<span><b>{LOJA.get('prazo_devolucao_dias', 7)} dias</b>Para desistir da compra</span></li></ul>
 </div></div>
-<div class="info">
-<section><h2>Sobre o produto</h2><p>{E(D['apresentacao'])}</p><p>{E(D['kits'])}</p></section>
-<section><h2>Composição</h2><p>{E(D['composicao'])}</p></section>
-<section><h2>Modo de uso</h2><p>{E(D['modo_de_uso'])}</p></section>
-<section><h2>Advertências</h2><ul>{''.join(f'<li>{E(a)}</li>' for a in D['advertencias'])}</ul></section>
-<section><p class="notice">{'Este produto é um suplemento alimentar e não é medicamento. Não se destina a diagnosticar, tratar, curar ou prevenir doenças. Resultados variam de pessoa para pessoa.' if p['tipo']=='suplemento' else 'Produto cosmético de uso externo. Resultados variam de pessoa para pessoa.'}</p></section>
-</div></div>
+<section class="card-sec"><h2>Descrição</h2><p>{E(D['apresentacao'])}</p><p>{E(D['kits'])}</p>
+<ul class="facts">{''.join(f'<li><span>{a}</span><b>{E(b)}</b></li>' for a, b in facts)}</ul></section>
+<section class="know"><div><p class="eyebrow">Conheça o produto</p><h2>{E(p['nome'])}</h2><p>{E(D['composicao'])}</p></div><div class="know-img"><img src="{E(imgs[min(1, len(imgs)-1)])}" alt="" loading="lazy" referrerpolicy="no-referrer"></div></section>
+<section class="howto"><h2 class="th"><span>Como</span> usar</h2><ol>{''.join(f'<li><span class="n">{i+1}</span><b>{E(t)}</b><p>{E(d)}</p></li>' for i, (t, d) in enumerate(steps))}</ol></section>
+<section class="card-sec"><h2>Advertências</h2><ul>{''.join(f'<li>{E(a)}</li>' for a in D['advertencias'])}</ul><p class="notice">{aviso}</p></section>
+<section class="kits-sec"><h2 class="th"><span>Escolha</span> o seu kit</h2><div class="kt-row">{tiles}</div></section>
+</div>
 <script type="application/json" id="produto-dados">{json.dumps(js, ensure_ascii=False)}</script>
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'''
-    canonical = url
-    return layout(f"{sel['titulo']} | {LOJA['nome_loja']}", body, root, desc=D['apresentacao'], canonical=canonical,
+    return layout(f"{sel['titulo']} | {LOJA['nome_loja']}", body, root, desc=D['apresentacao'], canonical=url,
                   extra_head=f'<meta property="og:image" content="{E(img(sel["imagens"][0], BASE + "/"))}">')
 
 # ---------------------------------------------------------------- catálogo
-def card(p, root):
-    v1 = p['variacoes'][0]
-    return f'''<a class="prod" href="{root}{kit_path(p,1)}" data-busca="{E(p['nome']+' '+p['marca']+' '+' '.join(p['componentes'])+' '+CATS.get(p.get('categoria',''),''))}" data-cat="{p.get('categoria','')}" data-sku="{v1['sku']}" data-nome="{E(p['nome'])}" data-marca="{E(p['marca'])}" data-preco="{v1['preco']}">
-<div class="ph"><img src="{E(img(v1['imagens'][0], root))}" alt="{E(p['nome'])}" loading="lazy" referrerpolicy="no-referrer"></div>
-<div class="bd"><h3>{E(p['nome'])}</h3><p class="meta">{E(FORMA[p['forma']])}{' · ' + E(p['conteudo']) if p['conteudo'] else ''}</p>
-<p class="from">1 {p['unidade']} <b>{brl(v1['preco'])}</b></p></div></a>'''
+def card(p, root, extra=''):
+    v1 = p['variacoes'][0]; v5 = p['variacoes'][-1]
+    s = save_pct(p, v5); top = p.get('mais_vendido')
+    return f'''<a class="prod" href="{root}{kit_path(p,1)}" data-busca="{E(p['nome']+' '+p['marca']+' '+' '.join(p['componentes'])+' '+CATS.get(p.get('categoria',''),''))}" data-cat="{p.get('categoria','')}" data-forma="{p['forma']}" data-sku="{v1['sku']}" data-nome="{E(p['nome'])}" data-marca="{E(p['marca'])}" data-preco="{v1['preco']}"{extra}>
+<div class="ph">{f'<span class="b-off">Até {s}% OFF</span>' if s >= 3 else ''}{f'<span class="b-top">TOP {top}</span>' if top else ''}<img src="{E(img(v1['imagens'][0], root))}" alt="{E(p['nome'])}" loading="lazy" referrerpolicy="no-referrer"></div>
+<div class="bd"><h3>{E(p['nome'])}</h3>
+<p class="pr"><small>1 {p['unidade']} por</small><b>{brl(v1['preco'])}</b></p>
+<p class="kit5">Kit com {v5['qtd']}: <b>{brl(v5['preco'])}</b></p>
+<span class="btn btn-card">Comprar</span></div></a>'''
 
-def cat_nav(root, ativa=''):
-    cnt = {k: sum(1 for p in PRODS if p.get('categoria') == k) for k in CATS}
-    chips = [f'<a class="chip" href="{root}" aria-current="{"page" if not ativa else "false"}">Todos</a>']
-    chips += [f'<a class="chip" data-cat="{k}" href="{root}categoria/{k}/" aria-current="{"page" if k == ativa else "false"}">{E(n)} <span>{cnt[k]}</span></a>' for k, n in CATS.items() if cnt[k]]
-    return '<nav class="chips" id="categorias" aria-label="Categorias">' + ''.join(chips) + '</nav>'
+def shelf(sid, title, ps, root, chips=None, more='', emo='', limit=16):
+    ch = ''
+    if chips:
+        ch = '<div class="fchips" role="group" aria-label="Filtrar">' + '<button type="button" class="fchip" aria-pressed="true" data-f="">Todos</button>' + \
+             ''.join(f'<button type="button" class="fchip" aria-pressed="false" data-f="{k}">{E(n)}</button>' for k, n in chips) + '</div>'
+    h = f'<span class="emo" aria-hidden="true">{emo}</span>' if emo else ''
+    t1, _, t2 = title.partition(' ')
+    return f'''<section class="shelf" id="{sid}"><div class="sh-head"><h2 class="th">{h}<span>{E(t1)}</span> {E(t2)}</h2>{f'<a class="more" href="{more}">Ver todos ›</a>' if more else ''}</div>{ch}
+<div class="car"><button type="button" class="car-b prev" aria-label="Anteriores">‹</button><div class="car-track">{''.join(card(p, root) for p in ps[:limit])}</div><button type="button" class="car-b next" aria-label="Próximos">›</button></div></section>'''
 
-def finder():
-    return '<div class="finder"><label class="skip" for="busca">Buscar produto</label><input id="busca" type="search" placeholder="Busque pelo nome, ingrediente ou categoria" autocomplete="off"></div><p class="count" id="count" aria-live="polite"></p>'
+def benefits():
+    b = [('truck', 'Frete grátis', 'Para todo o Brasil'), ('box', 'Kits com desconto', 'De 2 a 5 unidades'), ('card', 'Até 12x', 'No cartão de crédito'),
+         ('shield', 'Compra segura', 'Pagamento protegido'), ('chat', 'Atendimento', 'Seg. a sex., 9h às 18h')]
+    return '<section class="bens">' + ''.join(f'<div class="ben"><span class="ben-i">{ico(i)}</span><span><b>{t}</b><small>{s}</small></span></div>' for i, t, s in b) + '</section>'
 
 def home():
     root = ''
     top = sorted([p for p in PRODS if p.get('mais_vendido')], key=lambda p: p['mais_vendido'])
-    shelves = []
-    for k, n in CATS.items():
-        ps = [p for p in PRODS if p.get('categoria') == k and not p.get('mais_vendido')]
-        if ps:
-            shelves.append(f'<section class="shelf" id="{k}"><div class="shelf-head"><h2>{E(n)}</h2><a href="categoria/{k}/">Ver todos ({sum(1 for x in PRODS if x.get('categoria') == k)})</a></div><div class="grid">{"".join(card(p, root).replace('class="prod"', 'class="prod more"', 1) if i >= 10 else card(p, root) for i, p in enumerate(ps))}</div></section>')
+    slides = []
+    for i, p in enumerate(top[:4]):
+        v1 = p['variacoes'][0]; v5 = p['variacoes'][-1]
+        slides.append(f'''<div class="slide{' on' if i == 0 else ''}" role="group" aria-roledescription="slide" aria-label="{i+1} de {min(4, len(top))}">
+<div class="sl-txt"><span class="pill">Destaque</span><h2>{E(p['nome'])}</h2><p>{E(p['descricao']['apresentacao'][:150].rsplit(' ', 1)[0])}…</p>
+<p class="sl-price">Leve mais e pague menos: <b>kit com {v5['qtd']} por {brl(v5['preco'])}</b></p><a class="btn btn-hero" href="{kit_path(p, 1)}">Ver produto</a></div>
+<div class="sl-img"><img src="{E(img(v1['imagens'][0], root))}" alt="{E(p['nome'])}" {'' if i == 0 else 'loading="lazy"'} referrerpolicy="no-referrer"></div></div>''')
+    hero = f'''<section class="hero" aria-roledescription="carrossel" aria-label="Destaques">{''.join(slides)}
+<button type="button" class="hero-b prev" aria-label="Anterior">‹</button><button type="button" class="hero-b next" aria-label="Próximo">›</button>
+<div class="dots">{''.join(f'<button type="button" aria-label="Destaque {i+1}" aria-current="{"true" if i == 0 else "false"}"></button>' for i in range(len(slides)))}</div></section>'''
+    cats = [(k, n) for k, n in CATS.items() if ccount(k)]
+    def first_img(k):
+        p = next(p for p in PRODS if p.get('categoria') == k)
+        return img(p['variacoes'][0]['imagens'][0], root)
+    ccards = ''.join(f'''<a class="cc" href="categoria/{k}/"><span class="cc-i" style="background:{CAT_BG[i % len(CAT_BG)]}"><img src="{E(first_img(k))}" alt="" loading="lazy" referrerpolicy="no-referrer"></span><b>{E(n)}</b><small>{ccount(k)} produtos</small></a>''' for i, (k, n) in enumerate(cats))
+    top_cats = []
+    for p in top:
+        c = p.get('categoria')
+        if c not in [x for x, _ in top_cats]: top_cats.append((c, CATS[c].split(' e ')[0].split(',')[0]))
+    best = shelf('mais-vendidos', 'Os mais vendidos', top, root, chips=top_cats, emo='🏆')
+    promos = f'''<section class="promos"><a class="promo p1" href="#mais-vendidos"><small>Leve mais, pague menos</small><b>Kits de 2 a 5 unidades</b><span>Até 25% de desconto por unidade</span></a>
+<a class="promo p2" href="entrega/"><small>Para todo o Brasil</small><b>{E(LOJA['frete'])}</b><span>Entrega em até 12 dias úteis</span></a></section>'''
+    secs = []
+    for k, n in cats:
+        ps = [p for p in PRODS if p.get('categoria') == k and not p.get('mais_vendido')] or [p for p in PRODS if p.get('categoria') == k]
+        formas = [f for f in FORMA if f != 'outro' and sum(1 for p in ps[:16] if p['forma'] == f) and len({p['forma'] for p in ps[:16]}) > 1]
+        secs.append(shelf(k, n, ps, root, chips=[(f, FORMA[f]) for f in formas] or None, more=f'categoria/{k}/', emo=CAT_EMO.get(k, '')))
+    mid = len(secs) // 2
+    obj = ''.join(f'<a class="obj" href="categoria/{k}/"><span aria-hidden="true">{CAT_EMO[k]}</span><b>{E(n)}</b></a>' for k, n in OBJ if ccount(k))
+    objs = f'<section class="objs"><div class="sh-head"><h2 class="th"><span>Compre</span> por objetivo</h2></div><div class="obj-row">{obj}</div></section>'
+    cta = f'''<section class="cta"><div><small>Compra protegida do início ao fim</small><b>Pix, cartão em até 12x ou boleto</b><p>Pagamento processado pela RXPAY, nota fiscal em todos os pedidos e {LOJA.get('prazo_devolucao_dias', 7)} dias para desistir da compra.</p></div><a class="btn btn-hero" href="pagamento/">Saiba mais</a></section>'''
     body = f'''<div class="wrap">
-<section class="intro"><h1>Encontre seu produto</h1>
-<p>{len(PRODS)} produtos em kits de 1 a 5 unidades. Quanto maior o kit, menor o preço por unidade.</p>
-{finder()}
-{cat_nav(root)}</section>
-<section class="shelf best" id="mais-vendidos"><div class="shelf-head"><h2>Mais vendidos</h2></div><div class="grid">{"".join(card(p, root) for p in top)}</div></section>
-{"".join(shelves)}
+{hero}
+{benefits()}
+<section class="cats"><div class="sh-head"><h2 class="th"><span>Compre</span> por categoria</h2><a class="more" href="busca/">Ver todos ›</a></div><div class="cc-row">{ccards}</div></section>
+{best}
+{promos}
+{''.join(secs[:mid])}
+{objs}
+{''.join(secs[mid:])}
+{cta}
 </div>'''
     ld = {'@context': 'https://schema.org', '@type': 'Organization', 'name': LOJA['nome_loja'], 'legalName': LOJA['razao_social'],
           'url': BASE + '/', 'email': LOJA['email'], 'telephone': LOJA['telefone'], 'taxID': LOJA['cnpj'],
@@ -241,16 +337,29 @@ def home():
     write('index.html', layout(f"{LOJA['nome_loja']} | Suplementos e cuidados diários", body, root, canonical=BASE + '/',
                                extra_head=f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'))
 
-# ---------------------------------------------------------------- páginas institucionais
+def grid_page(root, title, ps, crumbs, chips_html='', intro='', search=False):
+    return f'''<div class="wrap"><nav class="crumbs" aria-label="Você está em"><a href="{root}">Início</a> › {crumbs}</nav>
+<section class="list-head"><h1 class="th">{title}</h1>{f'<p>{intro}</p>' if intro else ''}{chips_html}<p class="count" id="count" aria-live="polite"></p></section>
+<div class="grid{' searchable' if search else ''}" id="lista">{''.join(card(p, root) for p in ps)}</div></div>'''
+
 def category_pages():
     root = '../../'
     for k, n in CATS.items():
         ps = [p for p in PRODS if p.get('categoria') == k]
         if not ps: continue
-        body = f'''<div class="wrap"><p class="crumbs"><a href="{root}">Produtos</a> / {E(n)}</p>
-<section class="intro"><h1>{E(n)}</h1><p>{len(ps)} produtos em kits de 1 a 5 unidades.</p>{finder()}{cat_nav(root, k)}</section>
-<section class="shelf" id="{k}"><div class="grid">{"".join(card(p, root) for p in ps)}</div></section></div>'''
+        formas = [f for f in FORMA if f != 'outro' and any(p['forma'] == f for p in ps)]
+        ch = ''
+        if len(formas) > 1:
+            ch = '<div class="fchips" role="group" aria-label="Filtrar"><button type="button" class="fchip" aria-pressed="true" data-f="">Todos</button>' + \
+                 ''.join(f'<button type="button" class="fchip" aria-pressed="false" data-f="{f}">{FORMA[f]}</button>' for f in formas) + '</div>'
+        others = ''.join(f'<a class="chip" href="../{x}/">{CAT_EMO.get(x, "")} {E(m)}</a>' for x, m in CATS.items() if x != k and ccount(x))
+        body = grid_page(root, f'<span class="emo" aria-hidden="true">{CAT_EMO.get(k, "")}</span>{E(n)}', ps, E(n), ch, f'{len(ps)} produtos em kits de 1 a 5 unidades. Quanto maior o kit, menor o preço por unidade.')
+        body += f'<div class="wrap other-cats"><h2 class="th"><span>Outras</span> categorias</h2><nav class="chips">{others}</nav></div>'
         write(f'categoria/{k}/index.html', layout(f"{n} | {LOJA['nome_loja']}", body, root, desc=f"{n}: {len(ps)} produtos em kits de 1 a 5 unidades na {LOJA['nome_loja']}.", canonical=f'{BASE}/categoria/{k}/'))
+    root = '../'
+    body = grid_page(root, '<span>Todos</span> os produtos', PRODS, 'Busca', '', f'{len(PRODS)} produtos. Use a busca no topo para filtrar pelo nome, ingrediente ou categoria.', search=True)
+    write('busca/index.html', layout(f"Buscar produtos | {LOJA['nome_loja']}", body, root, canonical=f'{BASE}/busca/'))
+
 
 def pages():
     L = LOJA; dias = L.get('prazo_devolucao_dias', 7)
