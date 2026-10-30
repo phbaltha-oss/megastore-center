@@ -34,6 +34,7 @@ WA = re.sub(r'\D', '', LOJA.get('whatsapp', ''))
 PL = {'pote': 'potes', 'frasco': 'frascos', 'unidade': 'unidades'}
 FORMA = {'capsulas': 'Cápsulas', 'liquido': 'Líquido', 'po': 'Pó', 'cosmetico': 'Uso externo', 'outro': '—'}
 YEAR = datetime.date.today().year
+FRETE = float(LOJA.get('valor_frete', 0) or 0)  # frete único cobrado do cliente (0 = grátis)
 
 def brl(v): return ('R$ %.2f' % v).replace('.', ',')
 def money(v): return '%.2f BRL' % v
@@ -216,7 +217,7 @@ def product_page(p, q):
     offers = [{'@type': 'Offer', 'sku': v['sku'], 'name': v['titulo'], 'price': '%.2f' % v['preco'], 'priceCurrency': 'BRL',
                'availability': 'https://schema.org/InStock', 'itemCondition': 'https://schema.org/NewCondition',
                'url': BASE + '/' + kit_path(p, v['qtd']),
-               'shippingDetails': {'@type': 'OfferShippingDetails', 'shippingRate': {'@type': 'MonetaryAmount', 'value': '0', 'currency': 'BRL'},
+               'shippingDetails': {'@type': 'OfferShippingDetails', 'shippingRate': {'@type': 'MonetaryAmount', 'value': '%.2f' % FRETE, 'currency': 'BRL'},
                                    'shippingDestination': {'@type': 'DefinedRegion', 'addressCountry': 'BR'}},
                'hasMerchantReturnPolicy': {'@type': 'MerchantReturnPolicy', 'applicableCountry': 'BR', 'returnPolicyCategory': 'https://schema.org/MerchantReturnFiniteReturnWindow',
                                            'merchantReturnDays': LOJA.get('prazo_devolucao_dias', 7), 'returnMethod': 'https://schema.org/ReturnByMail', 'returnFees': 'https://schema.org/FreeReturn'}}
@@ -282,7 +283,7 @@ def shelf(sid, title, ps, root, chips=None, more='', emo='', limit=16):
 <div class="car"><button type="button" class="car-b prev" aria-label="Anteriores">‹</button><div class="car-track">{''.join(card(p, root) for p in ps[:limit])}</div><button type="button" class="car-b next" aria-label="Próximos">›</button></div></section>'''
 
 def benefits():
-    b = [('truck', 'Frete grátis', 'Para todo o Brasil'), ('box', 'Kits com desconto', 'De 2 a 5 unidades'), ('card', 'Até 12x', 'No cartão de crédito'),
+    b = [(('truck', 'Frete fixo', brl(FRETE) + ' para todo o Brasil') if FRETE else ('truck', 'Frete grátis', 'Para todo o Brasil')), ('box', 'Kits com desconto', 'De 2 a 5 unidades'), ('card', 'Até 12x', 'No cartão de crédito'),
          ('shield', 'Compra segura', 'Pagamento protegido'), ('chat', 'Atendimento', 'Seg. a sex., 9h às 18h')]
     return '<section class="bens">' + ''.join(f'<div class="ben"><span class="ben-i">{ico(i)}</span><span><b>{t}</b><small>{s}</small></span></div>' for i, t, s in b) + '</section>'
 
@@ -424,7 +425,7 @@ def feed():
             parts = []
             for k, val in f:
                 if k == 'g:shipping':
-                    parts.append('<g:shipping><g:country>BR</g:country><g:service>Padrão</g:service><g:price>0.00 BRL</g:price></g:shipping>')
+                    parts.append('<g:shipping><g:country>BR</g:country><g:service>Padrão</g:service><g:price>' + ('%.2f' % FRETE) + ' BRL</g:price></g:shipping>')
                 else:
                     parts.append(f'<{k}>{xesc(str(val))}</{k}>')
             items.append('<item>' + ''.join(parts) + '</item>')
