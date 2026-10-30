@@ -451,6 +451,10 @@ def main():
             shutil.rmtree(fp) if os.path.isdir(fp) else os.remove(fp)
     os.makedirs(OUT, exist_ok=True)
     shutil.copytree(os.path.join(ROOT, 'assets'), os.path.join(OUT, 'assets'))
+    # Paginas de venda avulsas (ex.: assets/zerohair) tambem em /<nome>/
+    zh = os.path.join(ROOT, 'assets', 'zerohair')
+    if os.path.isdir(zh):
+        shutil.copytree(zh, os.path.join(OUT, 'zerohair'))
     if '--imagens' in sys.argv:
         baixar_imagens()
     home(); category_pages(); pages()
