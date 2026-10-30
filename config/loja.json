@@ -13,7 +13,8 @@
   "dominio_proprio": "megastorecenter.com",
   "prazo_envio": "Postagem em até 2 dias úteis após a confirmação do pagamento",
   "prazo_entrega": "De 3 a 12 dias úteis, conforme a região",
-  "frete": "Frete grátis para todo o Brasil",
+  "frete": "Frete fixo de R$ 19,90 para todo o Brasil",
+  "valor_frete": 19.90,
   "prazo_devolucao_dias": 7,
   "formas_pagamento": "Pix, cartão de crédito em até 12x e boleto, processados pela RXPAY",
   "rastreamento": {
