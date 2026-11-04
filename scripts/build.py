@@ -453,7 +453,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     shutil.copytree(os.path.join(ROOT, 'assets'), os.path.join(OUT, 'assets'))
     # Paginas de venda avulsas (ex.: assets/zerohair) tambem em /<nome>/
-    for avulsa in ('zerohair', 'secaslim'):
+    for avulsa in ('zerohair', 'secaslim', 'serum-repair'):
         zh = os.path.join(ROOT, 'assets', avulsa)
         if os.path.isdir(zh):
             shutil.copytree(zh, os.path.join(OUT, avulsa))
