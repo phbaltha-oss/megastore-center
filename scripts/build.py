@@ -443,6 +443,36 @@ def sitemap():
     write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + ''.join(f'<url><loc>{xesc(u)}</loc></url>' for u in urls) + '</urlset>')
     write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /obrigado/\nSitemap: {BASE}/sitemap.xml\n')
 
+# ---------------------------------------------------------------- loja inativa
+AVULSAS = [('secaslim', 'Secaslim', 'Kromus Suplementos'), ('serum-repair', 'Sérum Repair', 'Kyan Cosmetic Technology')]
+
+def loja_inativa():
+    """Loja desativada ("loja_ativa": false em config/loja.json): publica só as
+    páginas de vendas avulsas e uma capa simples; catálogo, feed e páginas de produto saem do ar."""
+    v = ''
+    if TR.get('google_site_verification'): v += f'<meta name="google-site-verification" content="{E(TR["google_site_verification"])}">'
+    if TR.get('meta_domain_verification'): v += f'<meta name="facebook-domain-verification" content="{E(TR["meta_domain_verification"])}">'
+    nome = E(LOJA['nome_loja'])
+    links = ''.join(f'<a href="/{s}/"><b>{E(n)}</b><small>{E(m)}</small></a>' for s, n, m in AVULSAS)
+    def pg(title, body, robots='noindex'):
+        return f'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{E(title)}</title><meta name="robots" content="{robots}">{v}
+<style>body{{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f5;color:#0B3B2E;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box;text-align:center}}
+main{{max-width:520px;width:100%}}h1{{font-size:28px;margin:0 0 8px}}p{{color:#4a5d55;line-height:1.5;margin:0 0 24px}}
+nav{{display:grid;gap:12px}}nav a{{display:block;background:#fff;border:1px solid #d6e3dc;border-radius:12px;padding:16px;text-decoration:none;color:#0B3B2E}}
+nav a:hover{{border-color:#12A35B}}nav small{{display:block;color:#6b7d75;margin-top:2px}}footer{{margin-top:28px;font-size:13px;color:#6b7d75}}</style></head>
+<body><main>{body}<footer>{nome} · {E(LOJA.get('email', ''))}</footer></main></body></html>'''
+    write('index.html', pg(f'{LOJA["nome_loja"]}', f'<h1>{nome}</h1><p>Nossa loja está em manutenção. Conheça nossos produtos em destaque:</p><nav>{links}</nav>'))
+    write('404.html', pg('Página não encontrada', f'<h1>Página não encontrada</h1><p>Nossa loja está em manutenção. Conheça nossos produtos em destaque:</p><nav>{links}</nav>'))
+    # feed vazio: o Merchant Center remove os itens da loja na próxima leitura
+    write('feeds/google-merchant.xml', f'<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>{nome}</title><link>{BASE}/</link><description>Loja em manutenção</description></channel></rss>')
+    write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + ''.join(f'<url><loc>{BASE}/{s}/</loc></url>' for s, _, _ in AVULSAS) + '</urlset>')
+    write('robots.txt', f'User-agent: *\nAllow: /\nSitemap: {BASE}/sitemap.xml\n')
+    open(os.path.join(OUT, '.nojekyll'), 'w').close()
+    if LOJA.get('dominio_proprio'):
+        open(os.path.join(OUT, 'CNAME'), 'w').write(LOJA['dominio_proprio'].strip())
+    print('OK: loja INATIVA — publicadas só as páginas de vendas avulsas.')
+
 # ---------------------------------------------------------------- main
 def main():
     if os.path.exists(OUT):
@@ -457,6 +487,9 @@ def main():
         zh = os.path.join(ROOT, 'assets', avulsa)
         if os.path.isdir(zh):
             shutil.copytree(zh, os.path.join(OUT, avulsa))
+    if LOJA.get('loja_ativa', True) is False:
+        loja_inativa()
+        return
     if '--imagens' in sys.argv:
         baixar_imagens()
     home(); category_pages(); pages()
